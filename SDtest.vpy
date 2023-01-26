@@ -18,7 +18,7 @@ import utils.images2img
 
 #Make the stable diffusion pipe
 lat = torch.randn([1,4,64,64], dtype = torch.float16, device="cuda")
-pipe = utils.images2img.StableDiffusionImages2ImgPipeline.from_pretrained("CompVis/stable-diffusion-v1-4", revision="fp16", torch_dtype=torch.float16, safety_checker=None, requires_safety_checker=False)
+pipe = utils.images2img.StableDiffusionImages2ImgPipeline.from_pretrained(pretrained_model_name_or_path = "runwayml/stable-diffusion-v1-5", torch_dtype=torch.float16, revision="fp16", safety_checker=None, requires_safety_checker=False)
 pipe = pipe.to("cuda")
 pipe.enable_xformers_memory_efficient_attention()
 
@@ -61,7 +61,7 @@ forward_comp = core.mv.DepanCompensate(forward_comp, depanest, offset=1, mirror 
 #clip = core.std.Interleave([clip, forward_comp])
 
 #Define SD processing function
-def diffuse(img, img2):
+def diffuse(img: torch.Tensor, img2: torch.Tensor):
     #Convert range to [-1.0, 1.0] for Diffusers img2img
     img = 2.0 * img - 1.0
     img2 = 2.0 * img2 - 1.0
@@ -74,7 +74,7 @@ clip = core.resize.Spline36(clip, format = vs.RGBH, matrix_in_s="709", width=512
 forward_comp = core.resize.Spline36(forward_comp, format = vs.RGBH, matrix_in_s="709", width=512, height=512)
 
 #run inference
-processed = utils.inference.videoinference(clip, forward_comp, depanest, diffuse)
+processed = utils.inference.videoinference(clip, forward_comp, diffuse)
 
 #clip = core.std.MakeDiff(processed, clip)
 

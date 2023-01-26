@@ -54,7 +54,7 @@ def videoinference(clip: vs.VideoNode, clip2: vs.VideoNode, function) -> vs.Vide
 # Vapoursynth normally does not allow this, and it will break when trying to process more than one frame concurrently
 # since the current frame depends on the output of the previous frame
 # Ideally DepanCompensate should be ported to pytorch instead
-def timemachine(clip: vs.VideoNode, depanest: vs.VideoNode, function) -> vs.VideoNode:
+def timemachine(clip: vs.VideoNode) -> vs.VideoNode:
     def getprevious(n: int, f: list[vs.VideoFrame]) -> vs.VideoFrame:
         if f[0].props.get("_SceneChangePrevious") or (n == 0):
             # Return the current (unprocessed) frame if a scene change is detected

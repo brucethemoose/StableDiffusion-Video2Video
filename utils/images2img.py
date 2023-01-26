@@ -243,14 +243,13 @@ class StableDiffusionImages2ImgPipeline(StableDiffusionImg2ImgPipeline):
 
         # 10. Run safety checker
         #commented out for speed and lack of handling
-        #image, has_nsfw_concept = self.run_safety_checker(image, device, text_embeddings.dtype)
+        image, has_nsfw_concept = self.run_safety_checker(image, device, text_embeddings.dtype)
 
         # 11. Convert to PIL
-        #disabled because we are outputting numpy
-        #if output_type == "pil":
-        #    image = self.numpy_to_pil(image)
+        if output_type == "pil":
+            image = self.numpy_to_pil(image)
 
         if not return_dict:
-            return (image)
+            return (image, has_nsfw_concept)
 
-        return StableDiffusionPipelineOutput(images=image)
+        return StableDiffusionPipelineOutput(images=image, nsfw_content_detected = has_nsfw_concept)
