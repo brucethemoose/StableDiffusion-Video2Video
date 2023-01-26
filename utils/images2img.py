@@ -74,6 +74,30 @@ class StableDiffusionImages2ImgPipeline(StableDiffusionImg2ImgPipeline):
 
         return latents
 
+    def _encode_image(self, image, device, num_images_per_prompt, do_classifier_free_guidance):
+        dtype = next(self.image_encoder.parameters()).dtype
+
+        if not isinstance(image, torch.Tensor):
+            image = self.feature_extractor(images=image, return_tensors="pt").pixel_values
+
+        image = image.to(device=device, dtype=dtype)
+        image_embeddings = self.image_encoder(image).image_embeds
+        image_embeddings = image_embeddings.unsqueeze(1)
+
+        # duplicate image embeddings for each generation per prompt, using mps friendly method
+        bs_embed, seq_len, _ = image_embeddings.shape
+        image_embeddings = image_embeddings.repeat(1, num_images_per_prompt, 1)
+        image_embeddings = image_embeddings.view(bs_embed * num_images_per_prompt, seq_len, -1)
+
+        if do_classifier_free_guidance:
+            uncond_embeddings = torch.zeros_like(image_embeddings)
+
+            # For classifier free guidance, we need to do two forward passes.
+            # Here we concatenate the unconditional and text embeddings into a single batch
+            # to avoid doing two forward passes
+            image_embeddings = torch.cat([uncond_embeddings, image_embeddings])
+
+        return image_embeddings
     @torch.no_grad()
     def __call__(
         self,
@@ -175,7 +199,7 @@ class StableDiffusionImages2ImgPipeline(StableDiffusionImg2ImgPipeline):
         # 4. Preprocess image
         image = preprocess(image)
         image2 = preprocess(image2)
-
+        
         # 5. set timesteps
         self.scheduler.set_timesteps(num_inference_steps, device=device)
         timesteps, num_inference_steps = self.get_timesteps(num_inference_steps, strength, device)
@@ -218,13 +242,15 @@ class StableDiffusionImages2ImgPipeline(StableDiffusionImg2ImgPipeline):
         image = self.decode_latents(latents)
 
         # 10. Run safety checker
-        image, has_nsfw_concept = self.run_safety_checker(image, device, text_embeddings.dtype)
+        #commented out for speed and lack of handling
+        #image, has_nsfw_concept = self.run_safety_checker(image, device, text_embeddings.dtype)
 
         # 11. Convert to PIL
-        if output_type == "pil":
-            image = self.numpy_to_pil(image)
+        #disabled because we are outputting numpy
+        #if output_type == "pil":
+        #    image = self.numpy_to_pil(image)
 
         if not return_dict:
-            return (image, has_nsfw_concept)
+            return (image)
 
-        return StableDiffusionPipelineOutput(images=image, nsfw_content_detected=has_nsfw_concept)
+        return StableDiffusionPipelineOutput(images=image)
